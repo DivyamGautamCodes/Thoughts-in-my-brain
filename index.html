@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>The Chaos Inside a Creative Mind</title>
+    <style>
+        :root {
+            --primary-gold: #e5c158;
+            --primary-blue: #3a7bd5;
+            --bg-dark: #050508;
+            --font-cinematic: 'Playfair Display', Georgia, serif;
+            --font-sans: 'Montserrat', Helvetica, Arial, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: var(--bg-dark);
+            font-family: var(--font-sans);
+            color: #ffffff;
+        }
+
+        #canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* Cinematic Overlay (Letterbox) */
+        .cinematic-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .letterbox {
+            width: 100%;
+            height: 8vh;
+            background: rgba(0, 0, 0, 0.95);
+            transition: height 1.5s cubic-bezier(0.25, 1, 0.5, 1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 50px;
+            box-sizing: border-box;
+        }
+
+        /* Film Grain Effect */
+        .grain {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 3;
+            pointer-events: none;
+            opacity: 0.04;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+        }
+
+        /* Vignette */
+        .vignette {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            pointer-events: none;
+            background: radial-gradient(circle, transparent 30%, rgba(0,0,0,0.8) 100%);
+        }
+
+        /* UI Elements */
+        .brand {
+            font-family: var(--font-cinematic);
+            font-size: 1.2rem;
+            letter-spacing: 0.3em;
+            color: rgba(255, 255, 255, 0.7);
+            text-transform: uppercase;
+        }
+
+        .director-tag {
+            font-size: 0.7rem;
+            letter-spacing: 0.2em;
+            color: rgba(255, 255, 255, 0.4);
+            text-transform: uppercase;
+        }
+
+        /* Main Content HUD */
+        .hud-content {
+            position: absolute;
+            bottom: 12vh;
+            left: 8%;
+            right: 8%;
+            z-index: 10;
+            pointer-events: auto;
+            transition: opacity 1s ease, transform 1s ease;
+        }
+
+        .subtitle-box {
+            max-width: 600px;
+            margin-bottom: 30px;
+        }
+
+        .subtitle {
+            font-family: var(--font-cinematic);
+            font-size: 2rem;
+            line-height: 1.4;
+            font-style: italic;
+            color: #f0f0f0;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 1s, transform 1s;
+        }
+
+        .subtitle.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Interactive Controls */
+        .controls-container {
+            display: flex;
+            align-items: center;
+            gap: 30px;
+            margin-top: 20px;
+        }
+
+        .btn-focus {
+            position: relative;
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: #fff;
+            padding: 15px 40px;
+            font-size: 0.8rem;
+            font-family: var(--font-sans);
+            letter-spacing: 0.3em;
+            text-transform: uppercase;
+            cursor: pointer;
+            overflow: hidden;
+            transition: all 0.4s ease;
+            outline: none;
+        }
+
+        .btn-focus::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: all 0.6s ease;
+        }
+
+        .btn-focus:hover::before {
+            left: 100%;
+        }
+
+        .btn-focus:hover {
+            border-color: var(--primary-gold);
+            box-shadow: 0 0 15px rgba(229, 193, 88, 0.3);
+            color: var(--primary-gold);
+        }
+
+        /* Active Focus State for Button */
+        .btn-focus.active-focus {
+            background: var(--primary-gold);
+            color: #000;
+            border-color: var(--primary-gold);
+            font-weight: bold;
+            box-shadow: 0 0 30px rgba(229, 193, 88, 0.6);
+        }
+
+        /* Status Indicator */
+        .status-container {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .status-label {
+            font-size: 0.6rem;
+            letter-spacing: 0.2em;
+            color: rgba(255, 255, 255, 0.4);
+            text-transform: uppercase;
+        }
+
+        .status-bar-bg {
+            width: 150px;
+            height: 2px;
+            background: rgba(255, 255, 255, 0.1);
+            position: relative;
+        }
+
+        .status-bar-fill {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 0%;
+            background: var(--primary-blue);
+            transition: width 0.1s linear, background-color 1s ease;
+        }
+
+        /* Landing / Intro Screen */
+        #intro-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--bg-dark);
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 1.5s ease;
+        }
+
+        .intro-title {
+            font-family: var(--font-cinematic);
+            font-size: 3rem;
+            letter-spacing: 0.15em;
+            margin-bottom: 20px;
+            text-align: center;
+            opacity: 0;
+            transform: translateY(30px);
+            animation: fadeInUp 1.5s forwards 0.5s;
+        }
+
+        .intro-title span {
+            display: block;
+            font-size: 1.2rem;
+            font-family: var(--font-sans);
+            letter-spacing: 0.5em;
+            color: var(--primary-gold);
+            margin-top: 15px;
+            text-transform: uppercase;
+        }
+
+        .btn-enter {
+            background: transparent;
+            border: 1px solid var(--primary-gold);
+            color: var(--primary-gold);
+            padding: 15px 45px;
+            font-size: 0.8rem;
+            letter-spacing: 0.3em;
+            text-transform: uppercase;
+            cursor: pointer;
+            margin-top: 40px;
+            opacity: 0;
+            animation: fadeIn 1.5s forwards 1.8s;
+            transition: all 0.3s ease;
+        }
+
+        .btn-enter:hover {
+            background: var(--primary-gold);
+            color: var(--bg-dark);
+            box-shadow: 0 0 25px rgba(229, 193, 88, 0.4);
+        }
+
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+            }
+        }
+
+        /* End Screen Overlay */
+        #end-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(10,5,0,0.4) 0%, rgba(5,3,0,0.95) 100%);
+            z-index: 5;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 2.5s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        #end-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .end-text {
+            font-family: var(--font-cinematic);
+            font-size: 3rem;
+            text-align: center;
+            color: #fff;
+            max-width: 80%;
+            line-height: 1.5;
+            letter-spacing: 0.05em;
+            transform: scale(0.95);
+            transition: transform 3s ease;
+        }
+
+        #end-overlay.active .end-text {
+            transform: scale(1);
+        }
+
+        .end-text span {
+            display: block;
+            font-size: 1rem;
+            font-family: var(--font-sans);
+            letter-spacing: 0.6em;
+            text-transform: uppercase;
+            margin-top: 30px;
+            color: var(--primary-gold);
+        }
+
+        /* Floating instructions */
+        .instruction {
+            position: absolute;
+            right: 50px;
+            bottom: 12vh;
+            font-size: 0.7rem;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.3);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 10;
+        }
+
+        .instruction-dot {
+            width: 6px;
+            height: 6px;
+            background-color: var(--primary-gold);
+            border-radius: 50%;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.8); opacity: 0.5; }
+            50% { transform: scale(1.3); opacity: 1; }
+            100% { transform: scale(0.8); opacity: 0.5; }
+        }
+
+        /* Responsive */
+        @media(max-width: 768px) {
+            .letterbox {
+                padding: 0 20px;
+                height: 6vh;
+            }
+            .brand { font-size: 0.9rem; }
+            .director-tag { display: none; }
+            .hud-content { bottom: 10vh; left: 5%; right: 5%; }
+            .subtitle { font-size: 1.3rem; }
+            .controls-container { flex-direction: column; align-items: flex-start; gap: 15px; }
+            .btn-focus { width: 100%; text-align: center; }
+            .instruction { display: none; }
+            .end-text { font-size: 1.8rem; }
+        }
+    </style>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <div id="intro-screen">
+        <h1 class="intro-title">THE CHAOS INSIDE<br>A CREATIVE MIND<span>An Interactive Cinematic Experience</span></h1>
+        <button class="btn-enter" onclick="startExperience()">Enter Mind</button>
+    </div>
+
+    <div class="grain"></div>
+    <div class="vignette"></div>
+
+    <div class="cinematic-overlay">
+        <!-- Top Black Bar -->
+        <div class="letterbox">
+            <div class="brand">Creative Mind</div>
+            <div class="director-tag">A Cinematic Experiment</div>
+        </div>
+        <!-- Bottom Black Bar -->
+        <div class="letterbox"></div>
+    </div>
+
+    <!-- Interactive HUD -->
+    <div class="hud-content" id="hud" style="opacity: 0;">
+        <div class="subtitle-box">
+            <p class="subtitle active" id="subtitle">The storm rages. Scattered thoughts and unfinished ideas drift in the dark vacuum of overthinking.</p>
+        </div>
+        <div class="controls-container">
+            <button class="btn-focus" id="focus-btn" onmousedown="holdFocus(true)" onmouseup="holdFocus(false)" ontouchstart="holdFocus(true)" ontouchend="holdFocus(false)">Hold to Focus</button>
+            <div class="status-container">
+                <span class="status-label" id="status-text">State: Pure Chaos</span>
+                <div class="status-bar-bg">
+                    <div class="status-bar-fill" id="status-fill"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="instruction" id="instruction-ui" style="opacity: 0;">
+        <div class="instruction-dot"></div>
+        <span>Drag to orbit camera</span>
+    </div>
+
+    <div id="end-overlay">
+        <h2 class="end-text">"Every masterpiece begins as chaos."<span>The Mind at Peace</span></h2>
+    </div>
+
+    <div id="canvas-container"></div>
+
+    <!-- Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+
+    <script>
+        // Setup variables
+        let scene, camera, renderer, composer, controls;
+        let particleSystem, mandalaSystem, connectionLines;
+        let warmLight, coolLight, ambientLight;
+        
+        // Narrative state
+        let focusProgress = 0; // 0 (chaos) to 1 (pure order)
+        let isHolding = false;
+        let experienceStarted = false;
+        let loopId;
+
+        // Configuration
+        const PARTICLE_COUNT = 8000;
+        const chaosPositions = new Float32Array(PARTICLE_COUNT * 3);
+        const orderPositions = new Float32Array(PARTICLE_COUNT * 3);
+        const colors = new Float32Array(PARTICLE_COUNT * 3);
+
+        const subtitles = [
+            "The storm rages. Scattered thoughts and unfinished ideas drift in the dark vacuum of overthinking.",
+            "Slowing down. Searching for the thread... seeking the alignment within the noise.",
+            "Distractions quiet down. The geometry of the concept begins to formulate.",
+            "Every piece finds its home. The mind settles, channeling chaos into clarity.",
+            "Every masterpiece begins as chaos."
+        ];
+
+        // Init Engine
+        function init() {
+            const container = document.getElementById('canvas-container');
+
+            // Scene
+            scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(0x050508, 0.015);
+
+            // Camera
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+            camera.position.set(0, 5, 20);
+
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: "high-performance" });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.0;
+            container.appendChild(renderer.domElement);
+
+            // Controls
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.maxDistance = 30;
+            controls.minDistance = 8;
+            controls.enablePan = false;
+
+            // Lights
+            ambientLight = new THREE.AmbientLight(0x0a0f24, 1.5);
+            scene.add(ambientLight);
+
+            coolLight = new THREE.DirectionalLight(0x3a7bd5, 2);
+            coolLight.position.set(-10, 10, -10);
+            scene.add(coolLight);
+
+            warmLight = new THREE.PointLight(0xffa94d, 0.1, 30, 1.5);
+            warmLight.position.set(0, 0, 0);
+            scene.add(warmLight);
+
+            // Build Particles (Both Chaos & Order data)
+            buildParticles();
+
+            // Build Core Mandala Geometry (Inactive initially)
+            buildMandala();
+
+            // Post Processing (Cinematic Bloom)
+            const renderPass = new THREE.RenderPass(scene, camera);
+            const bloomPass = new THREE.UnrealBloomPass(
+                new THREE.Vector2(window.innerWidth, window.innerHeight),
+                1.5, // Strength
+                0.4, // Radius
+                0.85 // Threshold
+            );
+            bloomPass.threshold = 0.1;
+            bloomPass.strength = 1.2;
+            bloomPass.radius = 0.8;
+
+            composer = new THREE.EffectComposer(renderer);
+            composer.addPass(renderPass);
+            composer.addPass(bloomPass);
+
+            // Event Listeners
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        // Build Particle Systems
+        function buildParticles() {
+            const geometry = new THREE.BufferGeometry();
+            const colorCool = new THREE.Color(0x3a7bd5);
+            const colorWarm = new THREE.Color(0xe5c158);
+
+            for (let i = 0; i < PARTICLE_COUNT; i++) {
+                // 1. Chaos Positions (Dispersed cloud)
+                const x = (Math.random() - 0.5) * 20;
+                const y = (Math.random() - 0.5) * 20;
+                const z = (Math.random() - 0.5) * 20;
+                
+                chaosPositions[i * 3] = x;
+                chaosPositions[i * 3 + 1] = y;
+                chaosPositions[i * 3 + 2] = z;
+
+                // 2. Order Positions (Sacred Mandala Sphere)
+                // Fibonacci Sphere algorithm combined with flat concentric layers
+                const idx = i;
+                if (idx < PARTICLE_COUNT * 0.4) {
+                    // Concentric Flat Rings (The design plates)
+                    const ringIndex = idx % 8;
+                    const radius = (ringIndex + 1) * 0.9;
+                    const angle = (idx / (PARTICLE_COUNT * 0.4)) * Math.PI * 2 * 12;
+                    orderPositions[i * 3] = Math.cos(angle) * radius;
+                    orderPositions[i * 3 + 1] = (Math.random() - 0.5) * 0.15; // thin disk
+                    orderPositions[i * 3 + 2] = Math.sin(angle) * radius;
+                } else {
+                    // Outer Spherical Shell of Energy
+                    const phi = Math.acos(-1 + (2 * idx) / PARTICLE_COUNT);
+                    const theta = Math.sqrt(PARTICLE_COUNT * Math.PI) * phi;
+                    const radius = 6.5 + (idx % 3) * 0.3;
+                    orderPositions[i * 3] = Math.cos(theta) * Math.sin(phi) * radius;
+                    orderPositions[i * 3 + 1] = Math.sin(theta) * Math.sin(phi) * radius;
+                    orderPositions[i * 3 + 2] = Math.cos(phi) * radius;
+                }
+
+                // Initial colors (Cool blue/indigo tones)
+                const mixedColor = colorCool.clone().lerp(new THREE.Color(0x111625), Math.random() * 0.5);
+                colors[i * 3] = mixedColor.r;
+                colors[i * 3 + 1] = mixedColor.g;
+                colors[i * 3 + 2] = mixedColor.b;
+            }
+
+            geometry.setAttribute('position', new THREE.BufferAttribute(chaosPositions.slice(), 3));
+            geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+            // Custom particle texture (Soft Glow Circular Dot)
+            const pCanvas = document.createElement('canvas');
+            pCanvas.width = 16;
+            pCanvas.height = 16;
+            const pCtx = pCanvas.getContext('2d');
+            const gradient = pCtx.createRadialGradient(8, 8, 0, 8, 8, 8);
+            gradient.addColorStop(0, 'rgba(255,255,255,1)');
+            gradient.addColorStop(0.3, 'rgba(255,255,255,0.8)');
+            gradient.addColorStop(1, 'rgba(255,255,255,0)');
+            pCtx.fillStyle = gradient;
+            pCtx.fillRect(0, 0, 16, 16);
+            
+            const pTexture = new THREE.CanvasTexture(pCanvas);
+
+            const material = new THREE.PointsMaterial({
+                size: 0.08,
+                map: pTexture,
+                vertexColors: true,
+                transparent: true,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+
+            particleSystem = new THREE.Points(geometry, material);
+            scene.add(particleSystem);
+        }
+
+        // Build Inner Geometric Mandala Structure
+        function buildMandala() {
+            mandalaSystem = new THREE.Group();
+            
+            // Materials
+            const goldMaterial = new THREE.MeshStandardMaterial({
+                color: 0xe5c158,
+                metalness: 0.9,
+                roughness: 0.2,
+                wireframe: true,
+                transparent: true,
+                opacity: 0.0
+            });
+
+            // 1. Core Icosahedron
+            const coreGeom = new THREE.IcosahedronGeometry(1.5, 2);
+            const coreMesh = new THREE.Mesh(coreGeom, goldMaterial);
+            mandalaSystem.add(coreMesh);
+
+            // 2. Beautiful nested rings
+            for (let i = 0; i < 4; i++) {
+                const ringGeom = new THREE.TorusGeometry(2.5 + i * 0.8, 0.02, 8, 100);
+                const ringMesh = new THREE.Mesh(ringGeom, goldMaterial);
+                ringMesh.rotation.x = Math.PI / 2;
+                ringMesh.rotation.y = (Math.PI / 4) * i;
+                mandalaSystem.add(ringMesh);
+            }
+
+            // 3. Delicate Star geometry connections
+            const starGeom = new THREE.OctahedronGeometry(4, 1);
+            const starMesh = new THREE.Mesh(starGeom, new THREE.MeshStandardMaterial({
+                color: 0xffd000,
+                wireframe: true,
+                transparent: true,
+                opacity: 0.0
+            }));
+            mandalaSystem.add(starMesh);
+
+            scene.add(mandalaSystem);
+            mandalaSystem.scale.set(0.1, 0.1, 0.1); // Start compressed
+        }
+
+        // UI Interactions
+        function startExperience() {
+            experienceStarted = true;
+            document.getElementById('intro-screen').style.opacity = 0;
+            setTimeout(() => {
+                document.getElementById('intro-screen').style.display = 'none';
+                document.getElementById('hud').style.opacity = 1;
+                document.getElementById('instruction-ui').style.opacity = 1;
+            }, 1500);
+
+            // Initial cinematic dramatic zoom-in
+            gsap.from(camera.position, {
+                z: 50,
+                y: 10,
+                duration: 4.5,
+                ease: "power2.out",
+                onComplete: () => {
+                    controls.enabled = true;
+                }
+            });
+            
+            initLoop();
+        }
+
+        function holdFocus(isPressed) {
+            if (!experienceStarted) return;
+            isHolding = isPressed;
+            const btn = document.getElementById('focus-btn');
+            if(isPressed) {
+                btn.classList.add('active-focus');
+            } else {
+                btn.classList.remove('active-focus');
+            }
+        }
+
+        // Smoothly Transition States
+        function updateTransition(delta) {
+            const speed = 0.45; // Speed of focusing process
+            
+            if (isHolding) {
+                focusProgress = Math.min(1, focusProgress + delta * speed);
+            } else {
+                // Decay state back to chaos if they let go before completion
+                if (focusProgress < 0.99) {
+                    focusProgress = Math.max(0, focusProgress - delta * speed * 1.5);
+                }
+            }
+
+            // Apply transformations based on focusProgress
+            const positions = particleSystem.geometry.attributes.position.array;
+            const colorsAttr = particleSystem.geometry.attributes.color.array;
+            
+            const colorCool = new THREE.Color(0x2d68c4);
+            const colorWarm = new THREE.Color(0xe5c158);
+            const finalWarm = new THREE.Color(0xff7700);
+
+            // Handle HUD text/subtitles based on milestones
+            updateHUDText();
+
+            // 1. Morph Particles
+            for (let i = 0; i < PARTICLE_COUNT; i++) {
+                const i3 = i * 3;
+                
+                // Lerp Positions
+                positions[i3] = THREE.MathUtils.lerp(chaosPositions[i3], orderPositions[i3], focusProgress);
+                positions[i3+1] = THREE.MathUtils.lerp(chaosPositions[i3+1], orderPositions[i3+1], focusProgress);
+                positions[i3+2] = THREE.MathUtils.lerp(chaosPositions[i3+2], orderPositions[i3+2], focusProgress);
+
+                // Add turbulence to chaotic state, which smooths out during focus
+                const noiseFactor = (1 - focusProgress) * 0.15;
+                positions[i3] += Math.sin(Date.now() * 0.002 + i) * noiseFactor;
+                positions[i3+1] += Math.cos(Date.now() * 0.0015 + i) * noiseFactor;
+                positions[i3+2] += Math.sin(Date.now() * 0.001 + i) * noiseFactor;
+
+                // Color Morph (Cool Indigo -> Warm glowing Gold)
+                let targetColor = colorCool.clone();
+                if (focusProgress > 0.5) {
+                    const localRatio = (focusProgress - 0.5) * 2;
+                    targetColor.lerp(colorWarm, localRatio);
+                } else {
+                    targetColor.lerp(new THREE.Color(0x111625), (1 - focusProgress) * 0.3);
+                }
+                
+                colorsAttr[i3] = targetColor.r;
+                colorsAttr[i3+1] = targetColor.g;
+                colorsAttr[i3+2] = targetColor.b;
+            }
+            
+            particleSystem.geometry.attributes.position.needsUpdate = true;
+            particleSystem.geometry.attributes.color.needsUpdate = true;
+
+            // 2. Mandala system scaling and opacity
+            mandalaSystem.scale.setScalar(0.1 + focusProgress * 0.9);
+            mandalaSystem.children.forEach((mesh) => {
+                mesh.material.opacity = Math.max(0, (focusProgress - 0.3) * 1.4);
+            });
+
+            // 3. Ambient & Point Lighting adjustments
+            ambientLight.color.lerpColors(new THREE.Color(0x060814), new THREE.Color(0x1a0f05), focusProgress);
+            coolLight.intensity = (1 - focusProgress) * 2.0;
+            warmLight.intensity = focusProgress * 4.0;
+            
+            // Camera cinematic shake in chaos state, calming down in focused state
+            if (focusProgress < 0.95) {
+                const shake = (1 - focusProgress) * 0.015;
+                camera.position.x += (Math.random() - 0.5) * shake;
+                camera.position.y += (Math.random() - 0.5) * shake;
+            }
+
+            // Progress Bar Update
+            const fill = document.getElementById('status-fill');
+            fill.style.width = `${focusProgress * 100}%`;
+            
+            if (focusProgress > 0.8) {
+                fill.style.backgroundColor = 'var(--primary-gold)';
+                document.getElementById('status-text').innerText = "State: Absolute Focus";
+            } else if (focusProgress > 0.4) {
+                fill.style.backgroundColor = '#90b4e0';
+                document.getElementById('status-text').innerText = "State: Structuring Thoughts";
+            } else {
+                fill.style.backgroundColor = 'var(--primary-blue)';
+                document.getElementById('status-text').innerText = "State: Pure Chaos";
+            }
+
+            // Check if experience completed
+            if (focusProgress >= 1.0) {
+                triggerCompletion();
+            }
+        }
+
+        // Subtitles controller
+        let currentSubtitleIdx = -1;
+        function updateHUDText() {
+            let activeIdx = 0;
+            if (focusProgress > 0.15) activeIdx = 1;
+            if (focusProgress > 0.45) activeIdx = 2;
+            if (focusProgress > 0.75) activeIdx = 3;
+            if (focusProgress >= 1.0) activeIdx = 4;
+
+            if (activeIdx !== currentSubtitleIdx) {
+                currentSubtitleIdx = activeIdx;
+                const subText = document.getElementById('subtitle');
+                subText.classList.remove('active');
+                setTimeout(() => {
+                    subText.innerText = subtitles[currentSubtitleIdx];
+                    subText.classList.add('active');
+                }, 500);
+            }
+        }
+
+        // Cinematic Climax Sequence
+        function triggerCompletion() {
+            isHolding = false;
+            experienceStarted = false; // block further updates from hold focus
+            
+            // Fade UI out gently
+            gsap.to(document.getElementById('hud'), { opacity: 0, duration: 1.5 });
+            gsap.to(document.getElementById('instruction-ui'), { opacity: 0, duration: 1 });
+
+            // Slow down the controls rotation, take programmatic camera control
+            controls.autoRotate = true;
+            controls.autoRotateSpeed = 0.5;
+            controls.enableZoom = false;
+            controls.enableRotate = false;
+
+            // Epic cinematic zoom out/around
+            gsap.to(camera.position, {
+                x: 0,
+                y: 8,
+                z: 16,
+                duration: 5,
+                ease: "power1.inOut"
+            });
+
+            // Sparkle / Pulsate Bloom effect at completion
+            const bloom = composer.passes[1];
+            gsap.to(bloom, {
+                strength: 3.5,
+                duration: 1.5,
+                yoyo: true,
+                repeat: 1,
+                ease: "power2.inOut",
+                onComplete: () => {
+                    // Reveal the final commercial quote/end card
+                    document.getElementById('end-overlay').classList.add('active');
+                }
+            });
+        }
+
+        // Animation Loop
+        let clock = new THREE.Clock();
+        
+        function animate() {
+            loopId = requestAnimationFrame(animate);
+            const delta = clock.getDelta();
+            const time = clock.getElapsedTime();
+
+            // Run Transition handler
+            if (experienceStarted) {
+                updateTransition(delta);
+            }
+
+            // Always rotate the system dynamically
+            if (particleSystem) {
+                // Chaotic rapid spinning shifts to slow, majestic rotation when focused
+                const rotSpeed = 0.05 + (1 - focusProgress) * 0.15;
+                particleSystem.rotation.y += delta * rotSpeed;
+                
+                if (focusProgress > 0.5) {
+                    // Spin opposite direction slowly for interesting layering
+                    mandalaSystem.rotation.y -= delta * 0.1;
+                    mandalaSystem.rotation.z += delta * 0.05;
+                }
+            }
+
+            // Camera drift mimic dolly movement
+            if (controls && !controls.autoRotate) {
+                controls.update();
+            } else if (controls) {
+                controls.update();
+            }
+
+            composer.render();
+        }
+
+        function initLoop() {
+            clock.getDelta(); // reset clock
+            animate();
+        }
+
+        // Handle Resizing
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            composer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // Run
+        window.onload = () => {
+            init();
+        };
+    </script>
+</body>
+</html>
